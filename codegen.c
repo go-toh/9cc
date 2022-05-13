@@ -1,9 +1,51 @@
 #include "9cc.h"
 
-void gen(Node *node) {
-    if(node->kind == ND_NUM) {
-        printf("    push %d\n", node->val);
+void gen_addr(Node *node) {
+    if(node->kind == ND_LVAR) {
+        int offset = (node->name - 'a' + 1) * 8;
+        printf("    lea rax, [rbp-%d]\n", offset);
+        printf("    push rax\n");
         return;
+    }
+    error("not an lvalue");
+}
+
+void load() {
+    printf("    pop rax\n");
+    printf("    mov rax, [rax]\n");
+    printf("    push rax\n");
+}
+
+void store() {
+    printf("    pop rdi\n");
+    printf("    pop rax\n");
+    printf("    mov [rax], rdi\n");
+    printf("    push rdi\n");
+}
+
+void gen(Node *node) {
+    switch(node->kind) {
+        case ND_NUM:
+            printf("    push %d\n", node->val);
+            return;
+        case ND_EXPR_STMT:
+            gen(node->lhs);
+            printf("    add rsp, 8\n");
+            return;
+        case ND_LVAR:
+            gen_addr(node);
+            load();
+            return;
+        case ND_ASSIGN:
+            gen_addr(node->lhs);
+            gen(node->rhs);
+            store();
+            return;
+        case ND_RETURN:
+            gen(node->lhs);
+            printf("    pop rax\n");
+            printf("    jmp .Lrerurn\n");
+            return;
     }
 
     gen(node->lhs);
@@ -57,11 +99,16 @@ void codegen(Node *node) {
     printf(".globl main\n");
     printf("main:\n");
 
-    //抽象構文木を下りながらコード生成
-    gen(node);
+    printf("    push rbp\n");
+    printf("    mov rbp, rsp\n");
+    printf("    sub rsp, 208\n");
 
-    //スタックトップに式全体の値が残っているはずなので
-    //それをRAXにロードして関数からの返り値とする
-    printf("    pop rax\n");
+    //抽象構文木を下りながらコード生成
+    for(Node *n = node; n; n = n->next)
+        gen(n);
+
+    printf(".Lreturn:\n");
+    printf("    mov rsp, rbp\n");
+    printf("    pop rbp\n");
     printf("    ret\n");
 }
