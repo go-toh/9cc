@@ -4,7 +4,7 @@ assert() {
   input="$2"
 
   ./9cc "$input" > tmp.s
-  gcc -static -o tmp tmp.s
+  cc -o tmp tmp.s
   ./tmp
   actual="$?"
 
@@ -16,7 +16,6 @@ assert() {
   fi
 }
 
-assert 10 '5+5'
 assert 0 'return 0;'
 assert 42 'return 42;'
 assert 21 'return 5+20-4;'

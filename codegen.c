@@ -44,7 +44,7 @@ void gen(Node *node) {
         case ND_RETURN:
             gen(node->lhs);
             printf("    pop rax\n");
-            printf("    jmp .Lrerurn\n");
+            printf("    jmp .Lreturn\n");
             return;
     }
 
